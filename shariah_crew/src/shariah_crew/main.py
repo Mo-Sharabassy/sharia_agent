@@ -1,14 +1,13 @@
 import warnings
-from shariah_crew.crew import ShariahCrew
-
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
+from shariah_crew.crew import crew
+
+def run():
+    """Runs the CrewAI workflow"""
+    result = crew.kickoff(inputs={"token_name": "Bitcoin"})
+    print(result)
+
 if __name__ == "__main__":
-    print("Running Shariah Crew...")
-    try:
-        result = ShariahCrew.kickoff()
-        with open("shariah_report.md", "w", encoding="utf-8") as f:
-            f.write(result)
-        print("✅ Analysis complete! Results saved in shariah_report.md")
-    except Exception as e:
-        print(f"❌ Error running the crew: {e}")
+    run()
+
