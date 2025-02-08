@@ -47,49 +47,105 @@
 # ------------------------------------------
 
 
+# import json
+# import warnings
+# from fastapi import FastAPI
+# from pydantic import BaseModel
+# from shariah_crew.crew import final_crew
+
+# warnings.filterwarnings("ignore", category=SyntaxWarning)
+
+
+# app = FastAPI()  # ✅ Ensure this exists!
+
+# class TokenRequest(BaseModel):
+#     token_name: str
+
+# @app.get("/")
+# def read_root():
+#     return {"message": "CrewAI API is running!"}
+
+# @app.post("/analyze")
+# def analyze_token(request: TokenRequest):
+#     """Runs CrewAI and returns a structured JSON response."""
+#     result = final_crew.kickoff(inputs={"token_name": request.token_name})
+    
+
+
+
+# @app.post("/analyze")
+# def analyze_token(request: TokenRequest):
+#     """Runs CrewAI and returns a structured JSON response."""
+#     result = final_crew.kickoff(inputs={"token_name": request.token_name})
+    
+#     # Extract JSON response
+#     try:
+#         response = json.loads(result.raw_output) if hasattr(result, "raw_output") else result
+#     except json.JSONDecodeError:
+#         response = {"text": str(result)}
+
+#     return {
+#         "IsHalal": response.get("IsHalal", False),
+#         "justification": response.get("justification", "No justification provided."),
+#         "riskAssessment": response.get("riskAssessment", "No risk assessment provided.")
+#     }
+
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8000)
 import json
-import warnings
+import re
 from fastapi import FastAPI
 from pydantic import BaseModel
-from shariah_crew.crew import final_crew
+from shariah_crew.crew import final_crew  # Ensure your Crew is imported correctly
 
-warnings.filterwarnings("ignore", category=SyntaxWarning)
+app = FastAPI()
 
-
-app = FastAPI()  # ✅ Ensure this exists!
-
+# ✅ Define input model
 class TokenRequest(BaseModel):
     token_name: str
 
-@app.get("/")
-def read_root():
-    return {"message": "CrewAI API is running!"}
-
 @app.post("/analyze")
 def analyze_token(request: TokenRequest):
     """Runs CrewAI and returns a structured JSON response."""
-    result = final_crew.kickoff(inputs={"token_name": request.token_name})
     
-
-
-
-@app.post("/analyze")
-def analyze_token(request: TokenRequest):
-    """Runs CrewAI and returns a structured JSON response."""
+    # 🔹 Run CrewAI
     result = final_crew.kickoff(inputs={"token_name": request.token_name})
-    
-    # Extract JSON response
+
+    # 🔹 Debugging: Print Raw Output
+    print("🟢 Raw CrewAI Output:", result)
+
+    # ✅ Ensure result is captured properly
+    if hasattr(result, "raw_output"):
+        output_text = result.raw_output  # CrewAI object
+    elif isinstance(result, str):
+        output_text = result  # If it's already a string
+    elif isinstance(result, dict):
+        return result  # If it's already a JSON object
+    else:
+        output_text = str(result)  # Convert unknown types to string
+
+    # 🔹 Remove Markdown code block markers (```json ... ```)
+    output_text = re.sub(r"```json\n|\n```", "", output_text.strip())
+
+    # 🔹 Debugging: Print Processed Output
+    print("🟢 Cleaned Output Text:", output_text)
+
+    # ✅ Ensure JSON is parsed correctly
     try:
-        response = json.loads(result.raw_output) if hasattr(result, "raw_output") else result
+        response_data = json.loads(output_text)
     except json.JSONDecodeError:
-        response = {"text": str(result)}
+        response_data = {"text": output_text}  # If JSON parsing fails, return raw text
+
+    # 🔹 Debugging: Print Final Response
+    print("🟢 Final JSON Response:", response_data)
 
     return {
-        "IsHalal": response.get("IsHalal", False),
-        "justification": response.get("justification", "No justification provided."),
-        "riskAssessment": response.get("riskAssessment", "No risk assessment provided.")
+        "IsHalal": response_data.get("IsHalal", False),  # Default to False if missing
+        "justification": response_data.get("justification", "No justification provided."),
+        "riskAssessment": response_data.get("riskAssessment", "No risk assessment provided.")
     }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
