@@ -1,4 +1,3 @@
-import json
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 
@@ -94,43 +93,10 @@ format_json_task = Task(
 
 
 # 🔹 Crew Configuration
-crew = Crew(
+final_crew = Crew(
     agents=[shariah_analyst, risk_analyst, formatter_agent],
     tasks=[check_compliance_task, analyze_risk_task, format_json_task],
     process=Process.sequential,  # ✅ Shariah & Risk Analysis run in parallel, then formatted
     memory=True,
     verbose=True
 )
-
-# ✅ Start Execution
-result = crew.kickoff(inputs={"token_name": "Bitcoin"})  # Example input
-
-# ✅ Extract structured output safely
-def extract_text(output):
-    """Safely extract and parse JSON output from CrewAI result."""
-    if hasattr(output, "raw_output"):  # CrewOutput object
-        output_text = output.raw_output
-    elif isinstance(output, str):  # If already a string
-        output_text = output
-    elif isinstance(output, dict):  # If structured output
-        return output  # Directly return dict since it's already JSON
-    else:
-        output_text = str(output)  # Convert unknown types to string for safety
-
-    # Try parsing JSON if the output looks like JSON
-    try:
-        return json.loads(output_text)
-    except json.JSONDecodeError:
-        return {"text": output_text}  # Return raw text if it's not valid JSON
-
-# ✅ Process and combine results properly
-parsed_result = extract_text(result)
-
-final_response = {
-    "IsHalal": parsed_result.get("IsHalal", False),  # Default to False if missing
-    "justification": parsed_result.get("justification", "No justification provided."),
-    "riskAssessment": parsed_result.get("riskAssessment", "No risk assessment provided.")
-}
-
-# ✅ Print as JSON (for API response)
-print(json.dumps(final_response, indent=2))
