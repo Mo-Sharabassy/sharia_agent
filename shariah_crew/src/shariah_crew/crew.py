@@ -1,113 +1,84 @@
-# import os
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import SerperDevTool, ScrapeWebsiteTool
 
-# # ✅ Ensure API key for SerperDevTool is set
-# os.environ["SERPER_API_KEY"] = "your_api_key_here"
+# ✅ Tools for research
+search_tool = SerperDevTool()
+scraper_tool = ScrapeWebsiteTool()
 
-# 🔹 Agents
-
-web3_researcher = Agent(
-   role="Web3 Research Analyst",
-   goal="Identify and list Web3 companies and their protocols.",
-   backstory=(
-   		'''
-   		An expert in blockchain technologies, specializing in discovering and categorizing
-   		Web3 companies based on their purpose, technology, and protocols.
-   		'''
-	),
-	tools=[
-   		SerperDevTool(),
-   		ScrapeWebsiteTool()
-	],
-	verbose=True,
-	memory=True
-)
-
-blockchain_educator = Agent(
-   role="Blockchain Educator",
-   goal="Provide educational introductions to Web3 companies and their protocols.",
-   backstory=(
-   		'''
-   		A blockchain communicator skilled at simplifying complex technical concepts
-    	to educate users on how Web3 protocols function and generate revenue.
-   		'''
-	),
-	tools=[ScrapeWebsiteTool()],
-	verbose=True,
-	memory=True
-)
-
-compliance_analyst = Agent(
-   role="Shariah & Ethics Compliance Analyst",
-   goal="Assess whether Web3 companies comply with Shariah law and ethical investment standards.",
-   backstory=(
-   		'''
-   		A financial ethics specialist with deep knowledge of Islamic finance principles,
-    	capable of analyzing Web3 protocols to determine compliance with ethical guidelines.
-   		'''
-	),
-	tools=[
-   		ScrapeWebsiteTool(),
-   		SerperDevTool()  # 🔹 Added for broader research capabilities
-	],
-	verbose=True,
-	memory=True
-)
-
-# 🔹 Tasks
-
-find_web3_companies_task = Task(
-    description=(
-        '''
-        Conduct research to find Web3 companies that operate blockchain protocols.
-        Identify their names, official websites, and key areas of operation.
-        Your final report should contain at least 10 Web3 companies with their protocol details,
-        formatted as Markdown.
-        '''
+# 🔹 Shariah Compliance Agent
+shariah_analyst = Agent(
+    role="Shariah Compliance Analyst",
+    goal="Determine if {token_name} is compliant with Islamic finance principles.",
+    backstory=(
+        "An expert in Islamic finance with deep knowledge of Shariah compliance rules. "
+        "Your job is to analyze the token's purpose, revenue model, affiliations, and ecosystem "
+        "to assess its compliance with Islamic principles."
     ),
-    expected_output="A Markdown-formatted list of 10+ Web3 companies with official websites and main protocols.",
-    agent=web3_researcher,
-    output_file="web3_companies.md"  # ✅ Save output
+    tools=[search_tool, scraper_tool],
+    memory=True
 )
 
-get_protocol_introduction_task = Task(
-    description=(
-        '''
-        For each Web3 company found, provide an educational introduction to its protocol.
-        Explain how the protocol works, how the company profits, and its main use cases.
-        Format the output as a structured Markdown section.
-        '''
+# 🔹 Risk Assessment Agent
+risk_analyst = Agent(
+    role="Crypto Risk Assessment Analyst",
+    goal="Analyze {token_name}'s market history, trends, and investment risks.",
+    backstory=(
+        "A seasoned financial analyst specializing in crypto markets. "
+        "You conduct in-depth research on token performance, social media sentiment, "
+        "news articles, and financial reports to provide risk assessments."
     ),
-    expected_output="A Markdown-formatted document with introductions to at least 10 Web3 company protocols.",
-    agent=blockchain_educator,
-    output_file="protocol_introductions.md"  # ✅ Save output
+    tools=[search_tool, scraper_tool],
+    memory=True
 )
 
-analyze_compliance_task = Task(
+# 🔹 Task: Check Shariah Compliance
+check_compliance_task = Task(
     description=(
-        '''
-        Evaluate whether each Web3 company follows Shariah-compliant and ethical finance principles.
-        Check if they profit from interest-based lending (riba), gambling (maysir), or unethical industries
-        (e.g., adult content, alcohol, weapons). Format the output as a Markdown table with three columns:
-        | Company Name | Compliance Status | Notes |
-        '''
+        "Research the token {token_name} and determine if it complies with Islamic finance principles. "
+        "Analyze its revenue model, whether it involves interest-based lending (riba), gambling (maysir), "
+        "or unethical industries (e.g., adult content, alcohol, weapons). "
+        "Provide a True/False answer on compliance and explain the justification."
     ),
-    expected_output="A Markdown table summarizing the compliance status of each Web3 company.",
-    agent=compliance_analyst,
-    output_file="compliance_analysis.md"  # ✅ Save output
+    expected_output="A JSON response with 'IsHalal' (boolean) and 'justification' (string).",
+    agent=shariah_analyst,
 )
 
-# 🔹 Crew
+# 🔹 Task: Assess Investment Risks
+analyze_risk_task = Task(
+    description=(
+        "Conduct market research on {token_name}. "
+        "Analyze its price history, social media mentions (Twitter), financial reports, and related news articles. "
+        "Provide an assessment of whether investing in this token is advisable or risky, along with justification."
+    ),
+    expected_output="A JSON response with 'riskAssessment' (string).",
+    agent=risk_analyst,
+)
+
+# 🔹 Crew Configuration
 crew = Crew(
-    agents=[web3_researcher, blockchain_educator, compliance_analyst],
-    tasks=[find_web3_companies_task, get_protocol_introduction_task, analyze_compliance_task],
-    process=Process.sequential,
-    memory=True  # ✅ Enable memory for better context retention
+    agents=[shariah_analyst, risk_analyst],
+    tasks=[check_compliance_task, analyze_risk_task],
+    process=Process.sequential,  # ✅ First check compliance, then assess risk
+    memory=True,
+    verbose=True
 )
 
-# ✅ Start the crew execution
-result = crew.kickoff()
+# ✅ Start Execution
+result = crew.kickoff(inputs={"token_name": "Solana"})  # Example input
 
-# ✅ Print or save the final output
-print(result)
+# ✅ Extract string output from CrewOutput object
+if isinstance(result, dict):  # CrewAI may return structured output
+    output_text = "\n".join(str(value) for value in result.values())
+elif isinstance(result, str):  # Some versions may return string directly
+    output_text = result
+else:
+    raise TypeError(f"Unexpected CrewOutput format: {type(result)}")
+
+# ✅ Process final output safely
+final_response = {
+    "IsHalal": "true" if "compliant" in output_text.lower() else "false",
+    "justification": output_text.split("\n")[0],  # Extract first meaningful line
+    "riskAssessment": output_text.split("\n")[1] if "\n" in output_text else "N/A"
+}
+
+print(final_response)
