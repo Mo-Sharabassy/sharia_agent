@@ -55,10 +55,23 @@ from shariah_crew.crew import final_crew
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 
-app = FastAPI()
+
+app = FastAPI()  # ✅ Ensure this exists!
 
 class TokenRequest(BaseModel):
     token_name: str
+
+@app.get("/")
+def read_root():
+    return {"message": "CrewAI API is running!"}
+
+@app.post("/analyze")
+def analyze_token(request: TokenRequest):
+    """Runs CrewAI and returns a structured JSON response."""
+    result = final_crew.kickoff(inputs={"token_name": request.token_name})
+    
+
+
 
 @app.post("/analyze")
 def analyze_token(request: TokenRequest):
