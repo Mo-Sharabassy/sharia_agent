@@ -97,7 +97,7 @@ import json
 import re
 from fastapi import FastAPI
 from pydantic import BaseModel
-from shariah_crew.crew import final_crew  # Ensure your Crew is imported correctly
+from src.shariah_crew.crew import final_crew  # Ensure your Crew is imported correctly
 
 app = FastAPI()
 
