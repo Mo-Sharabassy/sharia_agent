@@ -93,11 +93,19 @@
 # if __name__ == "__main__":
 #     import uvicorn
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 import json
 import re
 from fastapi import FastAPI
 from pydantic import BaseModel
-from src.shariah_crew.crew import final_crew  # Ensure your Crew is imported correctly
+from shariah_crew.crew import final_crew  # Ensure your Crew is imported correctly
+
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # Adds current directory
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))  # Adds `src/`
+
 
 app = FastAPI()
 
