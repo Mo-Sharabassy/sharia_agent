@@ -22,26 +22,33 @@ crewai install
 
 **Add your `OPENAI_API_KEY` into the `.env` file**
 
-- Modify `src/shariah_crew/config/agents.yaml` to define your agents
-- Modify `src/shariah_crew/config/tasks.yaml` to define your tasks
+- Modify `src/shariah_crew/crew.py` to define your agents
+- Modify `src/shariah_crew/crew.py` to define your tasks
 - Modify `src/shariah_crew/crew.py` to add your own logic, tools and specific args
 - Modify `src/shariah_crew/main.py` to add custom inputs for your agents and tasks
 
+We're using different models for different agent for optimization and fast response.
+
 ## Running the Project
 
-To kickstart your crew of AI agents and begin task execution, run this from the root folder of your project:
+To kickstart your crew of AI agents and begin task execution, run this from the src folder of the project:
 
 ```bash
-$ crewai run
+$ pip install uvicorn
 ```
 
+```bash
+$ uvicorn shariah_crew.main:app --host 0.0.0.0 --port 8000 --reload
+```
 This command initializes the shariah_crew Crew, assembling the agents and assigning them tasks as defined in your configuration.
 
-This example, unmodified, will run the create a `report.md` file with the output of a research on LLMs in the root folder.
+This will startup an application and gives you a URL for the API you need to follow by /docs to interact with the agent through Swaggey UI
+
+POST -> Try Out -> change the token name -> Execute and wait for the response.
 
 ## Understanding Your Crew
 
-The shariah_crew Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `config/tasks.yaml`, leveraging their collective skills to achieve complex objectives. The `config/agents.yaml` file outlines the capabilities and configurations of each agent in your crew.
+The shariah_crew Crew is composed of multiple AI agents, each with unique roles, goals, and tools. These agents collaborate on a series of tasks, defined in `crew.py`, leveraging their collective skills to achieve complex objectives. The `crew.py` file outlines the capabilities and configurations of each agent in your crew.
 
 ## Support
 
